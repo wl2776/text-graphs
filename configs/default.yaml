@@ -1,0 +1,15 @@
+data: 
+  name: s-nlp/TextGraphs17-shared-task-dataset
+  max_length: 128
+
+seed: 42
+
+model: 
+  name: bert-base-uncased
+  hidden_dim: 128
+  num_layers: 2
+
+train:
+  epochs: 10
+  batch_size: 16
+  learning_rate: 0.001
