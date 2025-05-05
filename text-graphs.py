@@ -159,6 +159,19 @@ def is_valid_json(example):
         return False
 
 
+def compute_accuracy(predictions, targets):
+    """
+    Compute accuracy score.
+    :param predictions: Raw prediction scores (logits)
+    :param targets: Ground-truth labels
+    :return: Accuracy value
+    """
+    predicted_labels = (predictions >= 0.5).float()  # Бинаризация предсказаний
+    correct_predictions = (predicted_labels == targets).sum().item()
+    total_samples = targets.size(0)
+    return correct_predictions / total_samples
+
+
 def main(argv):
     args = get_args(argv)
 
@@ -192,7 +205,12 @@ def main(argv):
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
+
+            acc = compute_accuracy(predictions.detach().cpu(), batch['label'].float().view(-1, 1))
+            train_acc += acc
         
+        avg_train_acc = train_acc / len(train_loader)
+
         model.eval()
         with torch.no_grad():
             val_loss = 0
@@ -200,8 +218,17 @@ def main(argv):
                 predictions = model(val_batch)
                 loss = criterion(predictions, val_batch['label'].float().view(-1, 1).to(device))
                 val_loss += loss.item()
-        
-        print(f'Epoch [{epoch+1}/{cfg.train.epochs}], train loss: {total_loss / len(train_loader):.4f}, val loss: {val_loss / len(val_loader):.4f}')
+            
+                acc = compute_accuracy(predictions.cpu(), val_batch['label'].float().view(-1, 1))
+                val_acc += acc
+    
+        avg_val_acc = val_acc / len(val_loader)
+    
+        print(f'Epoch [{epoch+1}/{cfg.epochs}], '
+              f'train loss: {total_loss / len(train_loader):.4f}, '
+              f'train acc: {avg_train_acc:.4f}, '
+              f'val loss: {val_loss / len(val_loader):.4f}, '
+              f'val acc: {avg_val_acc:.4f}')        
 
 
 if __name__ == '__main__':
