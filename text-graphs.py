@@ -52,6 +52,9 @@ class TextGraphClassifier(torch.nn.Module):
         self.gcn = MultiLayerGCN(config.hidden_dim, config.hidden_dim, config.num_layers)
         self.adapter = torch.nn.Linear(config.hidden_dim, config.text_embedding_dim)
         self.final_classifier = torch.nn.Linear(config.text_embedding_dim * 2, 1)
+
+        for param in self.transformer.base_model.parameters():
+            param.requires_grad = False
     
     def forward(self, batch):
         text_embedding = self.transformer(
