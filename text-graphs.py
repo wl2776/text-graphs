@@ -196,7 +196,9 @@ def main(argv):
     model = TextGraphClassifier(cfg.model).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.train.learning_rate)
     criterion = torch.nn.BCEWithLogitsLoss()
-    
+
+    best_val_loss = float('inf')
+
     for epoch in trange(cfg.train.epochs):
         model.train()
         total_loss = 0
@@ -227,12 +229,22 @@ def main(argv):
                 val_acc += acc
     
         avg_val_acc = val_acc / len(val_loader)
-    
+        avg_val_loss = val_loss / len(val_loader)    
+
         print(f'Epoch [{epoch+1}/{cfg.train.epochs}], '
               f'train loss: {total_loss / len(train_loader):.4f}, '
               f'train acc: {avg_train_acc:.4f}, '
               f'val loss: {val_loss / len(val_loader):.4f}, '
               f'val acc: {avg_val_acc:.4f}')        
+
+        if avg_val_loss < best_val_loss:
+            best_val_loss = avg_val_loss
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': avg_val_loss
+            }, 'best_checkpoint.pth')
 
 
 if __name__ == '__main__':
