@@ -200,6 +200,7 @@ def main(argv):
     for epoch in trange(cfg.train.epochs):
         model.train()
         total_loss = 0
+        train_acc = 0
         for batch in tqdm(train_loader, desc='Train'):
             optimizer.zero_grad()
             predictions = model(batch)
@@ -216,6 +217,7 @@ def main(argv):
         model.eval()
         with torch.no_grad():
             val_loss = 0
+            val_acc = 0
             for val_batch in tqdm(val_loader, desc='Val'):
                 predictions = model(val_batch)
                 loss = criterion(predictions, val_batch['label'].float().view(-1, 1).to(device))
@@ -226,7 +228,7 @@ def main(argv):
     
         avg_val_acc = val_acc / len(val_loader)
     
-        print(f'Epoch [{epoch+1}/{cfg.epochs}], '
+        print(f'Epoch [{epoch+1}/{cfg.train.epochs}], '
               f'train loss: {total_loss / len(train_loader):.4f}, '
               f'train acc: {avg_train_acc:.4f}, '
               f'val loss: {val_loss / len(val_loader):.4f}, '
