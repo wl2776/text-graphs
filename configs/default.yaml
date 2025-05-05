@@ -7,10 +7,11 @@ seed: 42
 model: 
   name: bert-base-uncased
   text_embedding_dim: 768
-  hidden_dim: 128
-  num_layers: 2
+  hidden_dim: 256
+  num_layers: 3
 
 train:
-  epochs: 10
-  batch_size: 16
-  learning_rate: 0.001
+  epochs: 20
+  batch_size: 256
+  learning_rate: 0.0001
+  weight_decay: 0.01
