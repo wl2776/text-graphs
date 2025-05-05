@@ -6,6 +6,7 @@ import json
 import torch
 import networkx as nx
 from torch.utils.data import Dataset, DataLoader
+from torch.nn.parallel import DataParallel
 
 from omegaconf import OmegaConf
 
@@ -193,7 +194,7 @@ def main(argv):
     val_dataset = TextGraphDataset(train_val_split['test'], tokenizer, max_length=cfg.data.max_length)
     val_loader = DataLoader(val_dataset, batch_size=cfg.train.batch_size, collate_fn=DataCollator(tokenizer))
     
-    model = TextGraphClassifier(cfg.model).to(device)
+    model = DataParallel(TextGraphClassifier(cfg.model).to(device))
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.train.learning_rate, weight_decay=cfg.train.weight_decay)
     criterion = torch.nn.BCEWithLogitsLoss()
 

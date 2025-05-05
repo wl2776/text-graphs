@@ -12,6 +12,6 @@ model:
 
 train:
   epochs: 20
-  batch_size: 256
-  learning_rate: 0.0001
+  batch_size: 8192
+  learning_rate: 0.001
   weight_decay: 0.01
