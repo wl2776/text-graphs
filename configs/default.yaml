@@ -6,6 +6,7 @@ seed: 42
 
 model: 
   name: bert-base-uncased
+  text_embedding_dim: 768
   hidden_dim: 128
   num_layers: 2
 
