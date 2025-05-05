@@ -2,6 +2,6 @@ torch
 torch-geometric
 pandas
 transformers
-jsonlines
 scikit-learn
 huggingface_hub
+tqdm
