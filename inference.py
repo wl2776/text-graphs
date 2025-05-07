@@ -72,13 +72,11 @@ def main(argv):
     model.load_state_dict(model_state_dict)
     model.to(device)
 
-    # Загрузка данных
     df = pd.read_csv(args.input, sep='\t')
     df = clean_df_by_json_column(df, 'graph')
     dataset = InferenceDataset(df, tokenizer, config['data']['max_length'])
     loader = DataLoader(dataset, batch_size=config['train']['batch_size'], collate_fn=DataCollator(tokenizer, inference=True))
 
-    # Генерируем предсказания
     predictions = generate_predictions(model, loader)
     print("Predictions:", predictions)
 
