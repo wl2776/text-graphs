@@ -106,9 +106,9 @@ def main(argv):
             best_val_loss = avg_val_loss
             torch.save({
                 'epoch': epoch,
-                'model_state_dict': model.state_dict(),
+                'model_state_dict': model.module.state_dict() if isinstance(model, DataParallel) else model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
-                'loss': avg_val_loss
+                'config': cfg
             }, 'best_checkpoint.pth')
 
 
