@@ -21,7 +21,7 @@ class MultiLayerGCN(torch.nn.Module):
 
 
 class TextGraphClassifier(torch.nn.Module):
-    def __init__(self, config, device=None):
+    def __init__(self, config, device=None, freeze_transformer=True):
         super(TextGraphClassifier, self).__init__()
         self.config = config
         self.transformer = AutoModel.from_pretrained(config.name)
@@ -29,8 +29,9 @@ class TextGraphClassifier(torch.nn.Module):
         self.adapter = torch.nn.Linear(config.hidden_dim, config.text_embedding_dim)
         self.final_classifier = torch.nn.Linear(config.text_embedding_dim * 2, 1)
 
-        for param in self.transformer.base_model.parameters():
-            param.requires_grad = False
+        if freeze_transformer:
+            for param in self.transformer.base_model.parameters():
+                param.requires_grad = False
 
         if device is None:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -49,5 +50,5 @@ class TextGraphClassifier(torch.nn.Module):
         
         combined = torch.cat([text_embedding, gcn_embedding_expanded], dim=1)
         
-        return self.final_classifier(combined)
+        return torch.sigmoid(self.final_classifier(combined))
 

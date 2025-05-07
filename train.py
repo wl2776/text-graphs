@@ -60,7 +60,7 @@ def main(argv):
     
     model = DataParallel(TextGraphClassifier(cfg.model).to(device))
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.train.learning_rate, weight_decay=cfg.train.weight_decay)
-    criterion = torch.nn.BCEWithLogitsLoss()
+    criterion = torch.nn.BCELoss()
 
     best_val_loss = float('inf')
 
