@@ -40,14 +40,16 @@ class TextGraphDataset(Dataset):
 
 
 class DataCollator:
-    def __init__(self, tokenizer, max_length=128):
+    def __init__(self, tokenizer, max_length=128, inference=False):
         self.tokenizer = tokenizer
         self.max_length = max_length
+        self.train = not inference
 
     def __call__(self, samples):
         question_encodings = [item['question_encoding'] for item in samples]
         graphs = [item['graph'] for item in samples]
-        labels = [item['label'] for item in samples]
+        if self.train:
+            labels = [item['label'] for item in samples]
         
         max_seq_len = min(max(len(enc.input_ids[0]) for enc in question_encodings), self.max_length)
         
@@ -79,20 +81,56 @@ class DataCollator:
         batch_graphs = Batch.from_data_list(graphs)
         batch_graphs.edge_index = batch_graphs.edge_index.type(torch.long) 
         
-        return {
+        result = {
             'question_encoding': padded_inputs,
             'graph': batch_graphs,
-            'label': torch.stack(labels)
         }
+        
+        if self.train:
+            result['label'] = torch.stack(labels)
+
+        return result
 
 
-def is_valid_json(example):
+def is_valid_json(example, column_name='graph'):
     """функция для чистки неправильных описаний графов в формате json"""
     try:
-        json_str = example['graph']
+        json_str = example[column_name]
         json_str = json_str.replace("'", '"').replace('True', 'true').replace('False', 'false').replace('None', 'null').replace('nan', '\"nan\"')
         _ = json.loads(json_str)
         return True
     except json.JSONDecodeError:
         return False
+
+
+class InferenceDataset(Dataset):
+    def __init__(self, df, tokenizer, max_length):
+        self.df = df
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+    
+    def __len__(self):
+        return len(self.df)
+    
+    def __getitem__(self, idx):
+        row = self.df.iloc[idx]
+        question = row['question']
+        graph_json = row['graph']
+        json_str = graph_json.replace("'", '"').replace('True', 'true').replace('False', 'false').replace('None', 'null').replace('nan', '\"nan\"')
+        graph_json = json.loads(json_str)
+        
+        graph_nx = nx.node_link_graph(graph_json, edges="links")
+        nodes = list(graph_nx.nodes)
+        edges = [(u, v) for u, v in graph_nx.edges()]
+        
+        question_encoding = self.tokenizer(question, padding=True, truncation=True, max_length=self.max_length, return_tensors="pt")
+        
+        return {
+            'question_encoding': question_encoding,
+            'graph': Data(
+                x=torch.zeros((len(nodes), 1)),
+                edge_index=torch.tensor(edges).t().contiguous(),
+                num_nodes=len(nodes)
+            )
+        }
 
