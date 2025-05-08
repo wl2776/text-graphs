@@ -65,7 +65,7 @@ def main(argv):
 
     best_val_loss = float('inf')
 
-    model_path = Path(cfg.train.save)
+    model_path = Path(cfg.train.save_path)
     model_path.mkdir(parents=True, exist_ok=True)
 
     for epoch in trange(cfg.train.epochs):
