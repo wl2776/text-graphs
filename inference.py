@@ -36,7 +36,7 @@ def generate_predictions(model, loader):
     sample_ids = []
     with torch.no_grad():
         for batch in loader:
-            predictions = model(batch)
+            predictions = torch.sigmoid(model(batch))
             results.extend(predictions.squeeze().tolist())
             sample_ids.extend(batch['sample_id'].cpu().numpy())
 

@@ -9,7 +9,11 @@ class MultiLayerGCN(torch.nn.Module):
         # Первый слой должен принимать на вход 1 признак и выводить hidden_channels
         first_layer = GCNConv(in_channels=1, out_channels=hidden_channels)
         last_layers = [GCNConv(in_channels=hidden_channels, out_channels=hidden_channels) for _ in range(num_layers - 1)]
-        self.convs = torch.nn.ModuleList([first_layer] + last_layers)
+        dropouts = [torch.nn.Dropout()] * num_layers
+        module_list = []
+        for t in zip([first_layer] + last_layers, dropouts):
+            module_list.extend(t)
+        self.convs = torch.nn.ModuleList(module_list)
         self.fc_out = torch.nn.Linear(hidden_channels, out_channels)
     
     def forward(self, x, edge_index):
@@ -50,5 +54,5 @@ class TextGraphClassifier(torch.nn.Module):
         
         combined = torch.cat([text_embedding, gcn_embedding_expanded], dim=1)
         
-        return torch.sigmoid(self.final_classifier(combined))
+        return self.final_classifier(combined)
 

@@ -34,7 +34,7 @@ def compute_accuracy(predictions, targets):
     :param targets: Ground-truth labels
     :return: Accuracy value
     """
-    predicted_labels = (predictions >= 0.5).float()  # Бинаризация предсказаний
+    predicted_labels = (torch.sigmoid(predictions) >= 0.5).float()  # Бинаризация предсказаний
     correct_predictions = (predicted_labels == targets).sum().item()
     total_samples = targets.size(0)
     return correct_predictions / total_samples
@@ -61,7 +61,7 @@ def main(argv):
     
     model = DataParallel(TextGraphClassifier(cfg.model, freeze_transformer=cfg.model.freeze_transformer).to(device))
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.train.learning_rate, weight_decay=cfg.train.weight_decay)
-    criterion = torch.nn.BCELoss()
+    criterion = torch.nn.BCEWithLogitsLoss()
 
     best_val_loss = float('inf')
 
