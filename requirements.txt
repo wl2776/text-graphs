@@ -5,3 +5,5 @@ transformers
 scikit-learn
 huggingface_hub
 tqdm
+torchmetrics
+imblearn
