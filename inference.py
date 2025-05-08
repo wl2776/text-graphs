@@ -43,7 +43,9 @@ def generate_predictions(model, loader):
     result = pd.concat([pd.Series(sample_ids, name='sample_id'), 
                         pd.Series(results, name='prediction')], axis=1)
 
-    result['prediction'] = (result['prediction'] > 0.5).astype(int)
+    pred_threshold = result['prediction'].median()
+
+    result['prediction'] = (result['prediction'] > pred_threshold).astype(int)
 
     return result
 
