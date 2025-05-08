@@ -16,3 +16,4 @@ train:
   batch_size: 16384
   learning_rate: 0.000001
   weight_decay: 0.05
+  save_path: default

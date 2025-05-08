@@ -2,6 +2,7 @@
 
 import sys
 import argparse
+from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from torch.nn.parallel import DataParallel
@@ -21,7 +22,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def get_args(argv):
     parser = argparse.ArgumentParser(description='Train model')
-    parser.add_argument('--config', type=str, default='configs/default.yaml',
+    parser.add_argument('--config', type=Path, default='configs/default.yaml',
                         help='Config file path')
     return parser.parse_args(argv)
 
@@ -63,6 +64,9 @@ def main(argv):
     criterion = torch.nn.BCELoss()
 
     best_val_loss = float('inf')
+
+    model_path = Path(cfg.train.save)
+    model_path.mkdir(parents=True, exist_ok=True)
 
     for epoch in trange(cfg.train.epochs):
         model.train()
@@ -109,7 +113,7 @@ def main(argv):
                 'model_state_dict': model.module.state_dict() if isinstance(model, DataParallel) else model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'config': cfg
-            }, 'best_checkpoint.pth')
+            }, model_path / 'best_checkpoint.pth')
 
 
 if __name__ == '__main__':
