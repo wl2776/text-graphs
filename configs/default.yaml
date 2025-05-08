@@ -9,6 +9,7 @@ model:
   text_embedding_dim: 768
   hidden_dim: 256
   num_layers: 3
+  freeze_transformer: True
 
 train:
   epochs: 100
