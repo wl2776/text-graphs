@@ -9,7 +9,7 @@ from torch.nn.parallel import DataParallel
 from transformers import AutoTokenizer
 from omegaconf import OmegaConf
 
-from datasets import load_dataset
+from datasets import load_dataset, ClassLabel
 
 from tqdm.auto import tqdm, trange
 
@@ -46,8 +46,8 @@ def main(argv):
     torch.manual_seed(cfg.seed)
     
     dataset = load_dataset(path=cfg.data.name, split='train').filter(is_valid_json)
-    
-    train_val_split = dataset.train_test_split(test_size=0.2, seed=cfg.seed)
+    dataset = dataset.cast_column('correct', ClassLabel(names=['False', 'True'])) 
+    train_val_split = dataset.train_test_split(test_size=0.2, seed=cfg.seed, stratify_by_column='correct')
     
     tokenizer = AutoTokenizer.from_pretrained(cfg.model.name)
     
