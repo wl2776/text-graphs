@@ -92,7 +92,7 @@ def main(argv):
 
     merged = df.merge(predictions, on='sample_id', how='left')
 
-    col_to_drop = df.columns
+    col_to_drop = list(df.columns)
     col_to_drop.remove('sample_id')
     merged = merged.drop(columns=col_to_drop).fillna(0)
     
