@@ -3,24 +3,48 @@ from torch_geometric.nn import GCNConv
 from transformers import AutoModel
 
 
+class GCNConvBlock1(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, p=0.5):
+        super(GCNConvBlock1, self).__init__()
+        self.conv = GCNConv(in_channels=in_channels, out_channels=out_channels)
+        self.dropout = torch.nn.Dropout(p=p)
+        self.relu = torch.nn.ReLU()
+
+    def forward(self, x, edge_index):
+        x = self.conv(x, edge_index)
+        x = self.dropout(x)
+        x = self.relu(x)
+        return x
+
+
+class GCNConvBlock2(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, p=0.5):
+        super(GCNConvBlock2, self).__init__()
+        self.conv = GCNConv(in_channels=in_channels, out_channels=out_channels)
+        self.dropout = torch.nn.Dropout(p=p)
+
+    def forward(self, x, edge_index):
+        x = self.conv(x, edge_index)
+        x = self.dropout(x)
+        return x
+
+
 class MultiLayerGCN(torch.nn.Module):
     def __init__(self, hidden_channels, out_channels, num_layers=2):
         super(MultiLayerGCN, self).__init__()
-        # Первый слой должен принимать на вход 1 признак и выводить hidden_channels
-        first_layer = GCNConv(in_channels=1, out_channels=hidden_channels)
-        last_layers = [GCNConv(in_channels=hidden_channels, out_channels=hidden_channels) for _ in range(num_layers - 1)]
-        dropouts = [torch.nn.Dropout()] * num_layers
-        module_list = []
-        for t in zip([first_layer] + last_layers, dropouts):
-            module_list.extend(t)
-        self.convs = torch.nn.ModuleList(module_list)
+
+        # первые слои - с dropout и relu
+        first_layer = GCNConvBlock1(in_channels=1, out_channels=hidden_channels)
+        mid_layers = [GCNConvBlock1(in_channels=hidden_channels, out_channels=hidden_channels) for _ in range(num_layers - 2)]
+
+        last_layer = GCNConvBlock2(in_channels=hidden_channels, out_channels=hidden_channels)
+
+        self.convs = torch.nn.ModuleList([first_layer] + mid_layers + [last_layer])
         self.fc_out = torch.nn.Linear(hidden_channels, out_channels)
     
     def forward(self, x, edge_index):
-        for conv in self.convs[:-1]:
-            x = conv(x, edge_index)
-            x = torch.relu(x)
-        x = self.convs[-1](x, edge_index)
+        for c in self.convs:
+            x = c(x, edge_index)
         return self.fc_out(x)    
 
 
