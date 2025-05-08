@@ -50,6 +50,8 @@ class DataCollator:
         graphs = [item['graph'] for item in samples]
         if self.train:
             labels = [item['label'] for item in samples]
+        else:
+            sample_ids = [item['sample_id'] for item in samples]
         
         max_seq_len = min(max(len(enc.input_ids[0]) for enc in question_encodings), self.max_length)
         
@@ -88,6 +90,8 @@ class DataCollator:
         
         if self.train:
             result['label'] = torch.stack(labels)
+        else:
+            result['sample_id'] = torch.tensor(sample_ids)
 
         return result
 
@@ -126,6 +130,7 @@ class InferenceDataset(Dataset):
         question_encoding = self.tokenizer(question, padding=True, truncation=True, max_length=self.max_length, return_tensors="pt")
         
         return {
+            'sample_id': row['sample_id'],
             'question_encoding': question_encoding,
             'graph': Data(
                 x=torch.zeros((len(nodes), 1)),

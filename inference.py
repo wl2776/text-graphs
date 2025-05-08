@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
 
 import pandas as pd
+import omegaconf
 from omegaconf import OmegaConf
 
 from model import TextGraphClassifier
@@ -17,6 +18,7 @@ from dataset import InferenceDataset, DataCollator, is_valid_json
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+torch.serialization.add_safe_globals([omegaconf.dictconfig.DictConfig])
 
 def get_args(argv):
     parser = argparse.ArgumentParser(description='Run model')
@@ -31,11 +33,19 @@ def get_args(argv):
 def generate_predictions(model, loader):
     model.eval()
     results = []
+    sample_ids = []
     with torch.no_grad():
         for batch in loader:
             predictions = model(batch)
             results.extend(predictions.squeeze().tolist())
-    return results
+            sample_ids.extend(batch['sample_id'].cpu().numpy())
+
+    result = pd.concat([pd.Series(sample_ids, name='sample_id'), 
+                        pd.Series(results, name='prediction')], axis=1)
+
+    result['prediction'] = (result['prediction'] > 0.5).astype(int)
+
+    return result
 
 
 def clean_df_by_json_column(df, column_name='graph'):
@@ -55,7 +65,7 @@ def clean_df_by_json_column(df, column_name='graph'):
 def main(argv):
     args = get_args(argv)
 
-    checkpoint = torch.load(args.checkpoint, map_location=device)
+    checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
     if 'config' in checkpoint:
         config = checkpoint['config']
     elif args.config is not None:
@@ -78,8 +88,9 @@ def main(argv):
     loader = DataLoader(dataset, batch_size=config['train']['batch_size'], collate_fn=DataCollator(tokenizer, inference=True))
 
     predictions = generate_predictions(model, loader)
-    print("Predictions:", predictions)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
 
+    predictions.to_csv(args.output, sep='\t', index=False)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
