@@ -83,14 +83,24 @@ def main(argv):
     model.to(device)
 
     df = pd.read_csv(args.input, sep='\t')
-    df = clean_df_by_json_column(df, 'graph')
-    dataset = InferenceDataset(df, tokenizer, config['data']['max_length'])
+    df_cleaned = clean_df_by_json_column(df, 'graph')
+
+    dataset = InferenceDataset(df_cleaned, tokenizer, config['data']['max_length'])
     loader = DataLoader(dataset, batch_size=config['train']['batch_size'], collate_fn=DataCollator(tokenizer, inference=True))
 
     predictions = generate_predictions(model, loader)
+
+    merged = df.merge(predictions, on='sample_id', how='left')
+
+    col_to_drop = df.columns
+    col_to_drop.remove('sample_id')
+    merged = merged.drop(columns=col_to_drop).fillna(0)
+    
+    merged['prediction'] = merged['prediction'].astype(int)
+    
     args.output.parent.mkdir(parents=True, exist_ok=True)
 
-    predictions.to_csv(args.output, sep='\t', index=False)
+    merged.to_csv(args.output, sep='\t', index=False)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
