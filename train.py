@@ -135,18 +135,15 @@ def main(argv):
               f'val acc: {avg_val_acc:.4f}, '
               f'val f1: {avg_val_f1:.4f}') 
 
-        if avg_val_loss < best_val_loss or avg_val_f1 > best_f1:
-            if avg_val_loss < best_val_loss:
-                best_val_loss = avg_val_loss
-            if avg_val_f1 > best_f1:
-                best_f1 = avg_val_f1
+        if avg_val_f1 > best_f1:
+            best_f1 = avg_val_f1
 
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': model.module.state_dict() if isinstance(model, DataParallel) else model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'config': cfg
-            }, model_path / 'best_checkpoint.pth')
+            }, model_path / 'checkpoint.pth')
 
 
 if __name__ == '__main__':
