@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-
 import sys
 import argparse
 from pathlib import Path
+from collections import Counter
+from copy import deepcopy
+
 import torch
 from torch.utils.data import DataLoader
 from torch.nn.parallel import DataParallel
@@ -11,7 +13,7 @@ from torchmetrics import F1Score
 from transformers import AutoTokenizer
 from omegaconf import OmegaConf
 
-from datasets import load_dataset, ClassLabel
+from datasets import load_dataset, ClassLabel, concatenate_datasets
 
 from tqdm.auto import tqdm, trange
 
@@ -28,6 +30,24 @@ def get_args(argv):
     return parser.parse_args(argv)
 
 
+def prepare_datasets(config):
+    dataset = load_dataset(path=config.data.name, split='train').filter(is_valid_json)
+    dataset = dataset.cast_column('correct', ClassLabel(names=['False', 'True']))
+    train_val_split = dataset.train_test_split(test_size=0.2, stratify_by_column='correct', seed=config.seed)
+    train_dataset = train_val_split['train']
+    val_dataset = train_val_split['test']
+
+    counts = Counter(train_dataset['correct'])
+    majority_class = max(counts, key=counts.get)
+    minority_class = next(k for k in counts.keys() if k != majority_class)
+    minority_examples = train_dataset.filter(lambda ex: ex['correct'] == minority_class)
+
+    duplicated_minority = deepcopy(minority_examples)
+
+    aug_train = concatenate_datasets([train_dataset, duplicated_minority])
+    return aug_train, val_dataset
+
+
 def compute_accuracy(predictions, targets):
     """
     Compute accuracy score.
@@ -35,7 +55,7 @@ def compute_accuracy(predictions, targets):
     :param targets: Ground-truth labels
     :return: Accuracy value
     """
-    predicted_labels = (torch.sigmoid(predictions) >= 0.5).float()  # Бинаризация предсказаний
+    predicted_labels = (torch.sigmoid(predictions) >= 0.5).float()
     correct_predictions = (predicted_labels == targets).sum().item()
     total_samples = targets.size(0)
     return correct_predictions / total_samples
@@ -47,17 +67,15 @@ def main(argv):
     cfg = OmegaConf.load(args.config)
     torch.manual_seed(cfg.seed)
     
-    dataset = load_dataset(path=cfg.data.name, split='train').filter(is_valid_json)
-    dataset = dataset.cast_column('correct', ClassLabel(names=['False', 'True'])) 
-    train_val_split = dataset.train_test_split(test_size=0.2, seed=cfg.seed, stratify_by_column='correct')
+    train_dataset, val_dataset = prepare_datasets(cfg)
     
     tokenizer = AutoTokenizer.from_pretrained(cfg.model.name)
     
-    train_dataset = TextGraphDataset(train_val_split['train'], tokenizer, max_length=cfg.data.max_length)
+    train_dataset = TextGraphDataset(train_dataset, tokenizer, max_length=cfg.data.max_length)
     train_loader = DataLoader(train_dataset, batch_size=cfg.train.batch_size, shuffle=True, 
                               collate_fn=DataCollator(tokenizer))
 
-    val_dataset = TextGraphDataset(train_val_split['test'], tokenizer, max_length=cfg.data.max_length)
+    val_dataset = TextGraphDataset(val_dataset, tokenizer, max_length=cfg.data.max_length)
     val_loader = DataLoader(val_dataset, batch_size=cfg.train.batch_size, collate_fn=DataCollator(tokenizer))
     
     model = DataParallel(TextGraphClassifier(cfg.model, freeze_transformer=cfg.model.freeze_transformer).to(device))
