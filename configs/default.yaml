@@ -5,8 +5,8 @@ data:
 seed: 42
 
 model: 
-  name: bert-base-uncased
-  text_embedding_dim: 768
+  name: bert-large-cased
+  text_embedding_dim: 1024
   hidden_dim: 256
   num_layers: 3
   freeze_transformer: True
