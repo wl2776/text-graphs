@@ -1,5 +1,5 @@
 import torch
-from torch_geometric.nn import GCNConv
+from torch_geometric.nn import GCNConv, GraphNorm
 from transformers import AutoModel
 
 
@@ -8,11 +8,13 @@ class GCNConvBlock1(torch.nn.Module):
         super(GCNConvBlock1, self).__init__()
         self.conv = GCNConv(in_channels=in_channels, out_channels=out_channels)
         self.dropout = torch.nn.Dropout(p=p)
+        self.norm = GraphNorm(out_channels)
         self.relu = torch.nn.ReLU()
 
     def forward(self, x, edge_index):
         x = self.conv(x, edge_index)
         x = self.dropout(x)
+        x = self.norm(x)
         x = self.relu(x)
         return x
 
@@ -22,10 +24,12 @@ class GCNConvBlock2(torch.nn.Module):
         super(GCNConvBlock2, self).__init__()
         self.conv = GCNConv(in_channels=in_channels, out_channels=out_channels)
         self.dropout = torch.nn.Dropout(p=p)
+        self.norm = GraphNorm(out_channels)
 
     def forward(self, x, edge_index):
         x = self.conv(x, edge_index)
         x = self.dropout(x)
+        x = self.norm(x)
         return x
 
 
